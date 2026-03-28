@@ -1,0 +1,20 @@
+# Qt generated files
+*.pro.user
+*.pro.user.*
+Makefile*
+*.o
+*.exe
+Debug/
+Release/
+.qmake.stash
+moc_*
+ui_*
+*.moc
+*.obj
+*.pdb
+*.ilk
+*.suo
+*.user
+*.tmp
+*.sln
+*.vcxproj*
