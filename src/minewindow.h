@@ -46,7 +46,6 @@ private:
     QVector<QVector<QPushButton*>> m_cellButtons;
     QLabel *m_mineCountLabel;
     QLabel *m_timeLabel;
-    QLabel *m_bestTimeLabel;
     QPushButton *m_resetButton;
 
     QSettings m_settings;
@@ -58,8 +57,6 @@ private:
     void updateUI();
     void resetGame();
     void showBestTimes();
-    void updateBestTimeDisplay();
-    int getBestTimeForDifficulty() const;
     void saveBestTime(int time);
 };
 

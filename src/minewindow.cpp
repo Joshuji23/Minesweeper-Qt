@@ -7,12 +7,23 @@
 #include <QIcon>
 #include <QDebug>
 
+namespace {
+// 样式常量
+const QString NORMAL_BTN_STYLE = "QPushButton { background-color: #C0C0C0; border: 1px solid #808080; }"
+                                 "QPushButton:hover { background-color: #D0D0D0; }";
+const QString EMPTY_BTN_STYLE = "QPushButton { background-color: #E0E0E0; border: 1px solid #808080; }";
+const QString FLAG_BTN_STYLE = "QPushButton { background-color: #C0C0C0; border: 1px solid #808080; }";
+const QString BLAST_BTN_STYLE = "QPushButton { background-color: #FF4444; border: 1px solid #808080; }";
+const QString MINE_BTN_STYLE = "QPushButton { background-color: #FFCCCC; border: 1px solid #808080; }";
+const QString ERROR_BTN_STYLE = "QPushButton { background-color: #FF8888; border: 1px solid #808080; }";
+
 // 将秒数转换为 mm:ss 格式
-static QString formatTime(int seconds) {
+QString formatTime(int seconds) {
     int minutes = seconds / 60;
     int secs = seconds % 60;
     return QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(secs, 2, 10, QChar('0'));
 }
+} // anonymous namespace
 
 MineWindow::MineWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -42,7 +53,7 @@ void MineWindow::setupUI()
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
 
-    // 左侧垂直布局放置雷数量和时间，右侧放置按钮
+    // 顶部布局
     QHBoxLayout *topLayout = new QHBoxLayout();
 
     // 雷数量 + 时间
@@ -57,7 +68,7 @@ void MineWindow::setupUI()
 
     topLayout->addLayout(leftInfoLayout);
 
-    // 右侧按钮布局
+    // 右侧按钮
     QHBoxLayout *rightButtonLayout = new QHBoxLayout();
 
     m_resetButton = new QPushButton("😀", this);
@@ -72,7 +83,7 @@ void MineWindow::setupUI()
     rightButtonLayout->addWidget(recordButton);
 
     topLayout->addLayout(rightButtonLayout);
-    topLayout->addStretch(); // 让按钮靠右
+    topLayout->addStretch();
 
     mainLayout->addLayout(topLayout);
 
@@ -165,51 +176,49 @@ void MineWindow::updateCellButton(int row, int col)
     QString text;
 
     switch (cell.state) {
-    case MineField::State_Normal:
+    case MineField::CellState::Normal:
         text = "";
-        style = "QPushButton { background-color: #C0C0C0; border: 1px solid #808080; }"
-                "QPushButton:hover { background-color: #D0D0D0; }";
+        style = NORMAL_BTN_STYLE;
         btn->setEnabled(true);
         break;
-    case MineField::State_Empty:
+    case MineField::CellState::Empty:
         text = "";
-        style = "QPushButton { background-color: #E0E0E0; border: 1px solid #808080; }";
+        style = EMPTY_BTN_STYLE;
         btn->setEnabled(false);
         break;
-    case MineField::State_Flag:
+    case MineField::CellState::Flag:
         text = "🚩";
-        style = "QPushButton { background-color: #C0C0C0; border: 1px solid #808080; }";
+        style = FLAG_BTN_STYLE;
         btn->setEnabled(true);
         break;
-    case MineField::State_Dicey:
+    case MineField::CellState::Dicey:
         text = "?";
-        style = "QPushButton { background-color: #C0C0C0; border: 1px solid #808080; }";
+        style = FLAG_BTN_STYLE;  // 同旗子样式
         btn->setEnabled(true);
         break;
-    case MineField::State_Blast:
+    case MineField::CellState::Blast:
         text = "💣";
-        style = "QPushButton { background-color: #FF4444; border: 1px solid #808080; }";
+        style = BLAST_BTN_STYLE;
         btn->setEnabled(false);
         break;
-    case MineField::State_Mine:
+    case MineField::CellState::Mine:
         text = "💣";
-        style = "QPushButton { background-color: #FFCCCC; border: 1px solid #808080; }";
+        style = MINE_BTN_STYLE;
         btn->setEnabled(false);
         break;
-    case MineField::State_Error:
+    case MineField::CellState::Error:
         text = "❌";
-        style = "QPushButton { background-color: #FF8888; border: 1px solid #808080; }";
+        style = ERROR_BTN_STYLE;
         btn->setEnabled(false);
         break;
     default:
-        if (cell.state >= 1 && cell.state <= 8) {
-            text = QString::number(cell.state);
-            // 数字颜色
-            QString colors[] = {"", "#0000FF", "#008000", "#FF0000", "#000080",
-                                "#800000", "#008080", "#000000", "#808080"};
-            QString color = colors[cell.state];
+        // 数字状态 1~8
+        if (static_cast<int>(cell.state) >= 1 && static_cast<int>(cell.state) <= 8) {
+            text = QString::number(static_cast<int>(cell.state));
+            const QString colors[] = {"", "#0000FF", "#008000", "#FF0000", "#000080",
+                                      "#800000", "#008080", "#000000", "#808080"};
             style = QString("QPushButton { background-color: #E0E0E0; border: 1px solid #808080; "
-                            "color: %1; font-weight: bold; }").arg(color);
+                            "color: %1; font-weight: bold; }").arg(colors[static_cast<int>(cell.state)]);
             btn->setEnabled(false);
         }
         break;
@@ -292,7 +301,8 @@ void MineWindow::onCustomLevel()
     if (!ok) return;
     int height = QInputDialog::getInt(this, "自定义游戏", "高度:", 9, 5, 50, 1, &ok);
     if (!ok) return;
-    int mines = QInputDialog::getInt(this, "自定义游戏", "地雷数:", 10, 1, width * height / 2, 1, &ok);
+    int maxMines = width * height;
+    int mines = QInputDialog::getInt(this, "自定义游戏", "地雷数:", 10, 1, maxMines, 1, &ok);
     if (!ok) return;
 
     m_mineField->initialize(width, height, mines);
@@ -301,7 +311,7 @@ void MineWindow::onCustomLevel()
 
 void MineWindow::onTimerTick()
 {
-    if (m_mineField->getGameState() == MineField::GS_Run) {
+    if (m_mineField->getGameState() == MineField::GameState::Run) {
         m_elapsedTime++;
         m_timeLabel->setText(" ⏱️: " + formatTime(m_elapsedTime));
     }
@@ -313,14 +323,14 @@ void MineWindow::onCellLeftClicked()
     if (!btn) return;
 
     MineField::GameState state = m_mineField->getGameState();
-    if (state == MineField::GS_Dead || state == MineField::GS_Victory) {
+    if (state == MineField::GameState::Dead || state == MineField::GameState::Victory) {
         return;
     }
 
     int row = btn->property("row").toInt();
     int col = btn->property("col").toInt();
 
-    if (state == MineField::GS_Wait) {
+    if (state == MineField::GameState::Wait) {
         m_timer->start(1000);
     }
 
@@ -359,15 +369,15 @@ void MineWindow::onCellUpdated(int row, int col)
 void MineWindow::onGameStateChanged(MineField::GameState state)
 {
     switch (state) {
-    case MineField::GS_Run:
+    case MineField::GameState::Run:
         m_resetButton->setText("😐");
         break;
-    case MineField::GS_Dead:
+    case MineField::GameState::Dead:
         m_resetButton->setText("😵");
         m_timer->stop();
         QMessageBox::information(this, "游戏结束", "你输了！");
         break;
-    case MineField::GS_Victory:
+    case MineField::GameState::Victory:
         m_resetButton->setText("😎");
         m_timer->stop();
         if (m_elapsedTime > 0) {
